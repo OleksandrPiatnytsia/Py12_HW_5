@@ -1,3 +1,4 @@
+import sys
 import aiohttp
 import asyncio
 import json
@@ -10,27 +11,24 @@ RESULT_LIST = []
 
 
 async def currency_request(sub_days, session):
-    today = datetime.now()
+    today = datetime.now() - timedelta(
+        days=1)  # мінус один день від поточної дати бо курси можуть бути ще не встановлені
 
     new_datetime = today - timedelta(days=sub_days)
 
     new_datetime_formatted = new_datetime.strftime('%d.%m.%Y')
-    # print(new_datetime_formatted)
 
     url = f"{URL_PREFIX}{new_datetime_formatted}"
 
     async with session.get(url) as response:
-        # print("Status:", response.status)
-        # print("Content-type:", response.headers['content-type'])
-
-        response_data = await response.text()
-        # print(response_data)
-        await get_json_currency(response_data, new_datetime_formatted)
+        if response.status == 200:
+            response_data = await response.text()
+            await get_json_currency(response_data, new_datetime_formatted)
 
 
 async def get_json_currency(json_text, new_datetime_formatted):
     currency_objects = json.loads(json_text)
-
+    # print(currency_objects)
     exchange_list = []
     # print(new_datetime_formatted)
     for currency_dict in currency_objects["exchangeRate"]:
@@ -47,8 +45,6 @@ async def get_json_currency(json_text, new_datetime_formatted):
         "exchange": exchange_list
     })
 
-    # print(f"currency: {currency_dict['currency']} saleRate:{currency_dict['saleRate']}")
-
 
 async def main(check_days):
     async with aiohttp.ClientSession() as session:
@@ -56,10 +52,16 @@ async def main(check_days):
 
 
 if __name__ == "__main__":
-    # check_days = int(input("check_days"))
-    check_days = 3
+    arguments = sys.argv
 
-    asyncio.run(main(check_days))
-    # asyncio.run(currency_request(6))
+    other_arguments = arguments[1:]
+    if other_arguments:
+        check_days = int(other_arguments[0])
+        if check_days > 10:
+            print(f"Number {check_days} is too large, enter less than 10")
+        else:
+            asyncio.run(main(check_days))
 
-    pprint(RESULT_LIST)
+            pprint(RESULT_LIST)
+    else:
+        print("No arguments!")
