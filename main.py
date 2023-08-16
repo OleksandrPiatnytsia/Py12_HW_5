@@ -9,24 +9,23 @@ URL_PREFIX = "https://api.privatbank.ua/p24api/exchange_rates?date="
 RESULT_LIST = []
 
 
-async def currency_request(sub_days):
+async def currency_request(sub_days, session):
     today = datetime.now()
 
-    async with aiohttp.ClientSession() as session:
-        new_datetime = today - timedelta(days=sub_days)
+    new_datetime = today - timedelta(days=sub_days)
 
-        new_datetime_formatted = new_datetime.strftime('%d.%m.%Y')
-        # print(new_datetime_formatted)
+    new_datetime_formatted = new_datetime.strftime('%d.%m.%Y')
+    # print(new_datetime_formatted)
 
-        url = f"{URL_PREFIX}{new_datetime_formatted}"
+    url = f"{URL_PREFIX}{new_datetime_formatted}"
 
-        async with session.get(url) as response:
-            # print("Status:", response.status)
-            # print("Content-type:", response.headers['content-type'])
+    async with session.get(url) as response:
+        # print("Status:", response.status)
+        # print("Content-type:", response.headers['content-type'])
 
-            response_data = await response.text()
-            # print(response_data)
-            await get_json_currency(response_data, new_datetime_formatted)
+        response_data = await response.text()
+        # print(response_data)
+        await get_json_currency(response_data, new_datetime_formatted)
 
 
 async def get_json_currency(json_text, new_datetime_formatted):
@@ -52,7 +51,8 @@ async def get_json_currency(json_text, new_datetime_formatted):
 
 
 async def main(check_days):
-    await asyncio.gather(*[currency_request(i) for i in range(0, check_days)])
+    async with aiohttp.ClientSession() as session:
+        await asyncio.gather(*[currency_request(i, session) for i in range(0, check_days)])
 
 
 if __name__ == "__main__":
